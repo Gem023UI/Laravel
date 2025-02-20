@@ -5,9 +5,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Item;
 use App\Models\Stock;
+use App\Imports\ItemsImport;
+use App\Imports\ItemStockImport;
+use App\Cart;
 use Validator;
 use Storage;
 use DB;
+use Excel;
+use Session;
+
 
 class ItemController extends Controller
 {
@@ -16,7 +22,8 @@ class ItemController extends Controller
      */
     public function index()
     {
-        $items = Item::all();
+        // $items = Item::all();
+         $items = DB::table('item')->join('stock', 'item.item_id', '=', 'stock.item_id')->get();
         return view('item.index', compact('items'));
     }
 
@@ -106,5 +113,86 @@ class ItemController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function import()
+    {
+      
+        Excel::import(
+            new ItemStockImport,
+            request()
+                ->file('item_upload')
+                ->storeAs(
+                    'files',
+                    request()
+                        ->file('item_upload')
+                        ->getClientOriginalName()
+                )
+        );
+        return redirect()->back()->with('success', 'Excel file Imported Successfully');
+    }
+
+    public function getItems()
+    {
+        $items = DB::table('item')->join('stock', 'item.item_id', '=', 'stock.item_id')->get();
+      
+       
+        return view('shop.index', compact('items'));
+    }
+
+    public function addToCart($id)
+    {
+        $item = Item::find($id);
+        $oldCart = Session::has('cart') ? Session::get('cart') : null;
+        // dd($oldCart);
+        $cart = new Cart($oldCart);
+        // dd($cart);
+        $cart->add($item, $id);
+
+        Session::put('cart', $cart);
+        // dump(Session::get('cart'));
+        // $request->session()->save();
+        // Session::save();
+        // dd(Session::get('cart'));
+
+        return redirect('/')->with('success', 'item added to cart');
+    }
+
+    public function getCart()
+    {
+        // dump(Session::get('cart'));
+        if (!Session::has('cart')) {
+            return view('shop.shopping-cart');
+        }
+        $oldCart = Session::get('cart');
+        $cart = new Cart($oldCart);
+        // dd($cart);
+        return view('shop.shopping-cart', ['products' => $cart->items, 'totalPrice' => $cart->totalPrice]);
+    }
+
+    public function getReduceByOne($id)
+    {
+        $oldCart = Session::has('cart') ? Session::get('cart') : null;
+        $cart = new Cart($oldCart);
+        $cart->reduceByOne($id);
+        if (count($cart->items) > 0) {
+            Session::put('cart', $cart);
+        } else {
+            Session::forget('cart');
+        }
+        return redirect()->route('getCart');
+    }
+
+    public function getRemoveItem($id)
+    {
+        $oldCart = Session::has('cart') ? Session::get('cart') : null;
+        $cart = new Cart($oldCart);
+        $cart->removeItem($id);
+        if (count($cart->items) > 0) {
+            Session::put('cart', $cart);
+        } else {
+            Session::forget('cart');
+        }
+        return redirect()->route('getCart');
     }
 }
