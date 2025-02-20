@@ -2,57 +2,25 @@
 
 namespace App\Console;
 
-use Illuminate\Console\Command;
-use Illuminate\Foundation\Application;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
-class CommandHandler extends Command
+class Kernel extends ConsoleKernel
 {
     /**
-     * The Laravel application instance.
-     *
-     * @var \Illuminate\Foundation\Application
+     * Define the application's command schedule.
      */
-    protected $app;
-
-    /**
-     * Create a new command handler instance.
-     *
-     * @param  \Illuminate\Foundation\Application  $app
-     * @return void
-     */
-    public function __construct(Application $app)
+    protected function schedule(Schedule $schedule): void
     {
-        parent::__construct();
-        $this->app = $app;
+        // Add scheduled commands here
     }
 
     /**
-     * Handle the command.
-     *
-     * @return mixed
+     * Register the commands for the application.
      */
-    public function handle()
+    protected function commands(): void
     {
-        try {
-            // Your command logic here
-            return $this->info('Command executed successfully');
-        } catch (\Exception $e) {
-            return $this->error($e->getMessage());
-        }
-    }
-}
-
-// Alternative approach using a service provider
-namespace App\Providers;
-
-use Illuminate\Support\ServiceProvider;
-
-class CommandServiceProvider extends ServiceProvider
-{
-    public function register()
-    {
-        $this->app->singleton('command.handler', function ($app) {
-            return new \App\Console\CommandHandler($app);
-        });
+        $this->load(__DIR__.'/Commands');
+        require base_path('routes/console.php');
     }
 }
